@@ -1,8 +1,8 @@
 package uk.ac.ed.inf.interfaces;
 
-import uk.ac.ed.inf.ilp.constant.SystemConstants;
-import uk.ac.ed.inf.ilp.data.LngLat;
-import uk.ac.ed.inf.ilp.data.NamedRegion;
+import uk.ac.ed.inf.constant.SystemConstants;
+import uk.ac.ed.inf.data.LngLat;
+import uk.ac.ed.inf.data.NamedRegion;
 
 /**
  * implement the needed computations for a LngLat

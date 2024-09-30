@@ -1,7 +1,7 @@
 package uk.ac.ed.inf.interfaces;
 
-import uk.ac.ed.inf.ilp.data.Order;
-import uk.ac.ed.inf.ilp.data.Restaurant;
+import uk.ac.ed.inf.data.Order;
+import uk.ac.ed.inf.data.Restaurant;
 
 /**
  * interface to validate an order

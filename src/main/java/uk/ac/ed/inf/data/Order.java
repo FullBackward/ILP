@@ -1,7 +1,7 @@
 package uk.ac.ed.inf.data;
 
-import uk.ac.ed.inf.ilp.constant.OrderValidationCode;
-import uk.ac.ed.inf.ilp.constant.OrderStatus;
+import uk.ac.ed.inf.constant.OrderValidationCode;
+import uk.ac.ed.inf.constant.OrderStatus;
 
 import java.time.LocalDate;
 import java.util.Arrays;
