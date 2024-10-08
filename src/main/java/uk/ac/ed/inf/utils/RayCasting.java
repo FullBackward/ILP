@@ -24,7 +24,7 @@ public class RayCasting {
             BigDecimal blue = B[1].subtract(A[1]).divide(B[0].subtract(A[0]), MathContext.DECIMAL64);
             return red.compareTo(blue) >= 0;
         }catch(ArithmeticException exp){
-            System.out.println("[ERROR] SOURCE = RayCasting;" + exp);
+            System.out.println("[ERROR] SOURCE = RayCasting; " + exp);
             return false;
         }
     }
