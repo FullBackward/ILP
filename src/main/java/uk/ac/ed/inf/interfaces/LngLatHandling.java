@@ -4,6 +4,8 @@ import uk.ac.ed.inf.constant.SystemConstants;
 import uk.ac.ed.inf.data.LngLat;
 import uk.ac.ed.inf.data.NamedRegion;
 
+import java.util.List;
+
 /**
  * implement the needed computations for a LngLat
  */
@@ -56,4 +58,8 @@ public interface LngLatHandling {
      * @return the new position after the angle is used
      */
     LngLat nextPosition(LngLat startPosition, double angle);
+
+    NamedRegion isNamedRegion(List<LngLat> vertices, String name);
+
+    boolean inLine(LngLat v1, LngLat v2, LngLat v3);
 }

@@ -1,7 +1,5 @@
 package uk.ac.ed.inf;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.HttpStatus;
@@ -9,7 +7,10 @@ import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.server.ResponseStatusException;
 import uk.ac.ed.inf.data.LngLat;
+import uk.ac.ed.inf.data.NamedRegion;
 import uk.ac.ed.inf.utils.LngLatHandler;
+
+import java.util.ArrayList;
 
 @SpringBootApplication
 @RestController
@@ -89,7 +90,29 @@ public class App {
 
     @PostMapping("/isInRegion")
     public boolean isInRegion(@RequestBody String body){
-        return false;
+        try{
+            JsonObject o = JsonParser.parseString(body).getAsJsonObject();
+            JsonObject temp = o.get("position").getAsJsonObject();
+            LngLat pos = new LngLat(temp.get("lng").getAsDouble(), temp.get("lat").getAsDouble());
+            temp = o.get("region").getAsJsonObject();
+            String name = temp.get("name").getAsString();
+            JsonArray list = temp.get("vertices").getAsJsonArray();
+            ArrayList<LngLat> vertices = new ArrayList<>(list.asList().stream().map(JsonElement ->
+                    new LngLat(JsonElement.getAsJsonObject().get("lng").getAsDouble(),
+                            JsonElement.getAsJsonObject().get("lat").getAsDouble())).toList());
+            NamedRegion region = llHandler.isNamedRegion(vertices, name);
+            if(region.name().equals("")){
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Illegal named region");
+            }
+            return llHandler.isInRegion(pos, region);
+        }catch(JsonParseException ex){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "JSON Parser exception", ex);
+        }catch(NullPointerException ex){
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "JSON mapping error: element not found", ex);
+        }
     }
 
 }
