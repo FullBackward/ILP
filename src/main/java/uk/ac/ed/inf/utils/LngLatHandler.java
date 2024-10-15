@@ -50,7 +50,7 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
         int len = regionPoints.length;
         for (int i = 0; i < len - 1; i++) {
             if(inLine(regionPoints[i], position, regionPoints[i + 1])){
-                System.out.println("inline");
+                //System.out.println("inline");
                 return true;
             }
             if (RayCasting.intersects(
@@ -59,7 +59,7 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
                     new BigDecimal[] {BigDecimal.valueOf(regionPoints[i + 1].lng()),
                             BigDecimal.valueOf(regionPoints[i + 1].lat())},
                     new BigDecimal[]{plng, plat})) {
-                System.out.println("intersect");
+                //System.out.println("intersect");
                 inside = !inside;
             }
         }

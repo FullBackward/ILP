@@ -1,6 +1,10 @@
-FROM openjdk:17
-COPY ./target /tmp
-WORKDIR /tmp
-ENTRYPOINT ["/tmp/classes/uk/ac/ed/inf/","App"]
-# Please note that the THIRD-PARTY-LICENSE could be out of date if the base image has been updated recently.
-# The Corretto team will update this file but you may see a few days' delay.
+FROM --platform=linux/amd64 openjdk:17
+LABEL authors="winstonren"
+
+EXPOSE 8080
+
+WORKDIR /app
+
+COPY ./target/PizzaDronz-1.0-SNAPSHOT.jar app.jar
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
