@@ -48,7 +48,10 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
         LngLat[] regionPoints = region.vertices();
         boolean inside = false;
         int len = regionPoints.length;
+        //System.out.println("Point: " + position.lng() + ";" + position.lat());
         for (int i = 0; i < len - 1; i++) {
+            //System.out.println("Vertice 1: " + regionPoints[i].lng() + ";" + regionPoints[i].lat());
+            //System.out.println("Vertice 2: " + regionPoints[i + 1].lng() + ";" + regionPoints[i + 1].lat());
             if(inLine(regionPoints[i], position, regionPoints[i + 1])){
                 //System.out.println("inline");
                 return true;
@@ -61,7 +64,9 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
                     new BigDecimal[]{plng, plat})) {
                 //System.out.println("intersect");
                 inside = !inside;
-            }
+            }//else{
+                //System.out.println("not intersect");
+            //}
         }
         return inside;
     }
@@ -85,6 +90,14 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
             if(inLine(v1, v2, v3)){
                 vertices.remove(i + 1);
             }
+            if(v1.equals(v2) || v2.equals(v3)){
+                return new NamedRegion("", new LngLat[] {});
+            }
+        }
+        for(LngLat i : vertices){
+            if(!this.isLngLat(i)){
+                return new NamedRegion("", new LngLat[] {});
+            }
         }
         if(vertices.size() < 4 || !vertices.get(0).equals(vertices.get(vertices.size() - 1))){
             return new NamedRegion("", new LngLat[] {});
@@ -106,6 +119,11 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
                 || (x3.compareTo(x2) <= 0 && x2.compareTo(x1) <= 0))
                 && ((y1.compareTo(y2) <= 0 && y2.compareTo(y3) <= 0)
                 || (y3.compareTo(y2) <= 0 && y2.compareTo(y1) <= 0));
-        return (area == 0) && order;
+        return (area == 0 || BigDecimal.valueOf(area).compareTo(BigDecimal.valueOf(0.000000000001)) < 0) && order;
+    }
+
+    @Override
+    public boolean isLngLat(LngLat pos){
+        return pos.lng() <= 180 && pos.lng() >= -180 && pos.lat() <= 90 && pos.lat() >= -90;
     }
 }

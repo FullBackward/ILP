@@ -62,4 +62,6 @@ public interface LngLatHandling {
     NamedRegion isNamedRegion(List<LngLat> vertices, String name);
 
     boolean inLine(LngLat v1, LngLat v2, LngLat v3);
+
+    boolean isLngLat(LngLat pos);
 }
