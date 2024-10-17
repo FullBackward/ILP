@@ -77,8 +77,21 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
         BigDecimal cosValue = BigDecimal.valueOf(Math.cos(Math.toRadians(angle)));
         BigDecimal slng = BigDecimal.valueOf(startPosition.lng());
         BigDecimal slat = BigDecimal.valueOf(startPosition.lat());
-        return new LngLat(slng.add(cosValue.multiply(BigDecimal.valueOf(SystemConstants.DRONE_MOVE_DISTANCE))).doubleValue()
-                , slat.add(sinValue.multiply(BigDecimal.valueOf(SystemConstants.DRONE_MOVE_DISTANCE))).doubleValue());
+        double nlng = slng.add(cosValue.multiply(BigDecimal.valueOf(SystemConstants.DRONE_MOVE_DISTANCE))).doubleValue();
+        double nlat = slat.add(sinValue.multiply(BigDecimal.valueOf(SystemConstants.DRONE_MOVE_DISTANCE))).doubleValue();
+        if((nlng > 180)){
+            nlng = -180 + (nlng - 180);
+        }
+        if((nlng < -180)){
+            nlng = 180 + (nlng + 180);
+        }
+        if(nlat > 90){
+            nlat = -90 + (nlat - 90);
+        }
+        if(nlat < -90){
+            nlat = 90 + (nlat + 90);
+        }
+        return new LngLat(nlng, nlat);
     }
 
     @Override
