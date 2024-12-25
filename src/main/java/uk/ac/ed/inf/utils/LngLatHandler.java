@@ -80,16 +80,16 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
         double nlng = slng.add(cosValue.multiply(BigDecimal.valueOf(SystemConstants.DRONE_MOVE_DISTANCE))).doubleValue();
         double nlat = slat.add(sinValue.multiply(BigDecimal.valueOf(SystemConstants.DRONE_MOVE_DISTANCE))).doubleValue();
         if((nlng > 180)){
-            nlng = -180 + (nlng - 180);
+            nlng = nlng - 360;
         }
         if((nlng < -180)){
-            nlng = 180 + (nlng + 180);
+            nlng = nlng + 360;
         }
         if(nlat > 90){
-            nlat = -90 + (nlat - 90);
+            nlat = 180 - nlat;
         }
         if(nlat < -90){
-            nlat = 90 + (nlat + 90);
+            nlat = -180 - nlat;
         }
         return new LngLat(nlng, nlat);
     }
