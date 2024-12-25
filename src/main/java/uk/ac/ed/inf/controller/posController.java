@@ -17,7 +17,7 @@ import uk.ac.ed.inf.utils.LngLatHandler;
 import java.util.ArrayList;
 
 @RestController
-public class mainController {
+public class posController {
         private final LngLatHandler llHandler = new LngLatHandler();
 
         //GET uuid, return student id as a string without formatting
@@ -81,11 +81,12 @@ public class mainController {
                 JsonObject o = JsonParser.parseString(body).getAsJsonObject();
                 JsonObject temp = o.get("start").getAsJsonObject();
                 LngLat start = new LngLat(temp.get("lng").getAsDouble(), temp.get("lat").getAsDouble());
-                double angle = o.get("angle").getAsDouble();
+                double angle = o.get("angle").getAsInt();
                 if(angle % 45 != 0){
                     throw new ResponseStatusException(
                             HttpStatus.BAD_REQUEST, "Illegal angle");
                 }
+                angle = angle % 360;
                 if(!llHandler.isLngLat(start)){
                     System.err.println("[Error] SOURCE = MAIN CONTROLLER|Invalid position lng lat value");
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
