@@ -82,7 +82,7 @@ public class posController {
                 JsonObject temp = o.get("start").getAsJsonObject();
                 LngLat start = new LngLat(temp.get("lng").getAsDouble(), temp.get("lat").getAsDouble());
                 double angle = o.get("angle").getAsInt();
-                if(angle % 45 != 0){
+                if(angle % 22.5 != 0){
                     throw new ResponseStatusException(
                             HttpStatus.BAD_REQUEST, "Illegal angle");
                 }

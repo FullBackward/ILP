@@ -29,6 +29,12 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
             //System.out.println("lat1: " + startPosition.lat() + "lat2: " + otherPosition.lat());
             //System.out.println("ac: " + ac + "cb: " + cb);
             return ac.pow(2).add(cb.pow(2)).sqrt(MathContext.DECIMAL64).doubleValue();
+            /*
+            double ac = Math.abs((startPosition.lng() - otherPosition.lng()));
+            double cb = Math.abs((startPosition.lat() - otherPosition.lat()));
+            return Math.sqrt(Math.pow(ac, 2) + (Math.pow(cb, 2)));
+
+             */
         }catch(Exception exp){
             return -1;
         }
@@ -73,12 +79,18 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
 
     @Override
     public LngLat nextPosition(LngLat startPosition, double angle) {
+        /*
         BigDecimal sinValue = BigDecimal.valueOf(Math.sin(Math.toRadians(angle)));
         BigDecimal cosValue = BigDecimal.valueOf(Math.cos(Math.toRadians(angle)));
         BigDecimal slng = BigDecimal.valueOf(startPosition.lng());
         BigDecimal slat = BigDecimal.valueOf(startPosition.lat());
         double nlng = slng.add(cosValue.multiply(BigDecimal.valueOf(SystemConstants.DRONE_MOVE_DISTANCE))).doubleValue();
         double nlat = slat.add(sinValue.multiply(BigDecimal.valueOf(SystemConstants.DRONE_MOVE_DISTANCE))).doubleValue();
+         */
+        double sinValue = Math.sin(Math.toRadians(angle));
+        double cosValue = Math.cos(Math.toRadians(angle));
+        double nlng = startPosition.lng() + cosValue * SystemConstants.DRONE_MOVE_DISTANCE;
+        double nlat = startPosition.lat() + sinValue * SystemConstants.DRONE_MOVE_DISTANCE;
         if((nlng > 180)){
             nlng = nlng - 360;
         }
