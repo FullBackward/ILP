@@ -53,9 +53,8 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
         BigDecimal plat = BigDecimal.valueOf(position.lat());
         LngLat[] regionPoints = region.vertices();
         boolean inside = false;
-        int len = regionPoints.length;
         //System.out.println("Point: " + position.lng() + ";" + position.lat());
-        for (int i = 0; i < len - 1; i++) {
+        for (int i = 0; i < regionPoints.length - 1; i++) {
             //System.out.println("Vertice 1: " + regionPoints[i].lng() + ";" + regionPoints[i].lat());
             //System.out.println("Vertice 2: " + regionPoints[i + 1].lng() + ";" + regionPoints[i + 1].lat());
             if(inLine(regionPoints[i], position, regionPoints[i + 1])){
@@ -63,6 +62,17 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
                 return true;
             }
             if (RayCasting.intersects(
+                    new double[] {regionPoints[i].lng(),
+                            regionPoints[i].lat()},
+                    new double[] {regionPoints[i + 1].lng(),
+                            regionPoints[i + 1].lat()},
+                    new double[]{position.lng(), position.lat()})) {
+                //System.out.println("intersect");
+                inside = !inside;
+            }
+
+             /*
+            if (RayCasting.intersectsBD(
                     new BigDecimal[] {BigDecimal.valueOf(regionPoints[i].lng()),
                             BigDecimal.valueOf(regionPoints[i].lat())},
                     new BigDecimal[] {BigDecimal.valueOf(regionPoints[i + 1].lng()),
@@ -73,6 +83,8 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
             }//else{
                 //System.out.println("not intersect");
             //}
+
+              */
         }
         return inside;
     }
@@ -145,6 +157,15 @@ public class LngLatHandler implements uk.ac.ed.inf.interfaces.LngLatHandling {
                 && ((y1.compareTo(y2) <= 0 && y2.compareTo(y3) <= 0)
                 || (y3.compareTo(y2) <= 0 && y2.compareTo(y1) <= 0));
         return (area == 0 || BigDecimal.valueOf(area).compareTo(BigDecimal.valueOf(0.000000000001)) < 0) && order;
+        /*
+        double area = v1.lng() * (v2.lat() - v3.lat()) + v2.lng() * (v3.lat() - v1.lat()) + v3.lng() * (v1.lat() - v2.lat());
+        boolean order = (v1.lng() <= v2.lng() && v2.lng() <= v3.lng())
+                || (v3.lng() <= v2.lng() && v2.lng() <= v1.lng())
+                && (v1.lat() <= v2.lat() && v2.lat() <= v3.lat())
+                || (v3.lat() <= v2.lat() && v2.lat() <= v1.lat());
+        return (area < 0.000000000001) && order;
+
+         */
     }
 
     @Override

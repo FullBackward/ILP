@@ -3,7 +3,6 @@ package uk.ac.ed.inf.utils;
 import uk.ac.ed.inf.constant.SystemConstants;
 import uk.ac.ed.inf.data.LngLat;
 import uk.ac.ed.inf.data.NamedRegion;
-import uk.ac.ed.inf.utils.LngLatHandler;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -89,13 +88,16 @@ public class PathCalculator {
             return (int)(tempLng ^ (tempLng >>> 32)) ^ (int)(tempLat ^ (tempLat >>> 32));
         }
     }
-    private jumpReturn jump(pP currentPoint, LngLat end, NamedRegion[] noFlyZones){
+    private jumpReturn jump(pP currentPoint, LngLat end, NamedRegion[] noFlyZones, NamedRegion stayInZone){
         jumpReturn jumpReturn = new jumpReturn();
+        boolean in = false;
         while(true){
             LngLat currentLL = currentPoint.getPoint();
-            pP[] neighbours = new pP[16];
+            if(lngLatHandler.isInRegion(currentLL, stayInZone)) in = true;
+            pP[] neighbours = new pP[3];
             int n = 0;
-            for(double i = 0; i < 360; i += 22.5){
+            double angle = getAngle(currentPoint.getPoint(), end);
+            for(double i = angle - 22.5; i <= angle + 22.5; i += 22.5){
                 LngLat npos = this.lngLatHandler.nextPosition(currentLL, i);
                 neighbours[n] = new pP(npos);
                 neighbours[n].setParent(currentPoint);
@@ -105,10 +107,18 @@ public class PathCalculator {
             Arrays.sort(neighbours);
             pP nextPos = neighbours[0];
             for(NamedRegion region: noFlyZones){
-                if(lngLatHandler.isInRegion(nextPos.getPoint(), region)){
+                double[] ds = new double[region.vertices().length];
+                for(int i = 0; i < ds.length; i++){
+                    ds[i] = lngLatHandler.distanceTo(region.vertices()[i], nextPos.getPoint());
+                }
+                Arrays.sort(ds);
+                if((ds[0] + ds[1]) < SystemConstants.DRONE_MOVE_DISTANCE * 10 || lngLatHandler.isInRegion(nextPos.getPoint(), region)){
                     jumpReturn.setRegion(region);
                     jumpReturn.setPoint(currentPoint);
                     return jumpReturn;
+                }
+                if((in && !lngLatHandler.isInRegion(nextPos.getPoint(), stayInZone))){
+                    return null;
                 }
             }
             if(!lngLatHandler.isLngLat(nextPos.getPoint())){
@@ -132,11 +142,27 @@ public class PathCalculator {
     }
     private double getAngle(LngLat p1, LngLat p2) {
         double angle = Math.toDegrees(Math.atan2(p1.lat() - p2.lat(), p1.lng()) - p2.lng());
-
-        if(angle < 0){
+        if (angle < 0){
             angle += 360;
         }
-        return angle;
+        angle = ((angle % 360) + 360) % 360;
+
+        // 2) Each of the 16 directions covers 360 / 16 = 22.5 degrees
+        double increment = 360.0 / 16.0; // 22.5
+
+        // 3) Divide, round to nearest integer, then multiply back
+        double steps = Math.round(angle / increment);
+        double snappedAngle = steps * increment;
+
+        // Optional: if we want [0, 360) strictly, handle the edge case:
+        // e.g., 360 => wrap back to 0
+        if (snappedAngle >= 360) {
+            snappedAngle -= 360.0;
+        }
+        if (snappedAngle < 0){
+            snappedAngle += 360;
+        }
+        return snappedAngle;
     }
     private ArrayList<LngLat> reconstructPathASTAR(HashMap<LngLat, LngLat> cameFrom, LngLat end, LngLat start){
         ArrayList<LngLat> path = new ArrayList<>();
@@ -161,6 +187,46 @@ public class PathCalculator {
         if(pathAL.size() > maxSteps) throw new Exception("Max steps meets");
         this.prettyPrintPath(pathAL);
         return pathAL.toArray(new LngLat[pathAL.size()]);
+    }
+    private static int orientation(LngLat p, LngLat q, LngLat r) {
+        // (q.lat - p.lat)*(r.lng - q.lng) - (q.lng - p.lng)*(r.lat - q.lat)
+        double val = (q.lat() - p.lat()) * (r.lng() - q.lng())
+                - (q.lng() - p.lng()) * (r.lat() - q.lat());
+
+        // If using doubles, consider a small epsilon
+        if (Math.abs(val) < 1e-12) {
+            return 0; // collinear
+        }
+        return (val > 0) ? 1 : 2;
+    }
+    private static boolean onSegment(LngLat p, LngLat q, LngLat r) {
+        return (Math.min(p.lng(), r.lng()) <= q.lng() && q.lng() <= Math.max(p.lng(), r.lng())
+                && Math.min(p.lat(), r.lat()) <= q.lat() && q.lat() <= Math.max(p.lat(), r.lat()));
+    }
+
+    private boolean intercept(LngLat p1, LngLat p2, LngLat e1, LngLat e2){
+        // 1) Find the four orientations needed for general and special cases
+        int o1 = orientation(p1, p2, e1);
+        int o2 = orientation(p1, p2, e2);
+        int o3 = orientation(e1, e2, p1);
+        int o4 = orientation(e1, e2, p2);
+
+        // 2) General case: If the two segments share different orientations
+        if (o1 != o2 && o3 != o4) {
+            return true;
+        }
+
+        // 3) Special case: p1, p2, p3 are collinear and p3 lies on p1->p2
+        if (o1 == 0 && onSegment(p1, e1, p2)) return true;
+        // p1, p2, p4 are collinear and p4 lies on p1->p2
+        if (o2 == 0 && onSegment(p1, e2, p2)) return true;
+        // p3, p4, p1 are collinear and p1 lies on p3->p4
+        if (o3 == 0 && onSegment(e1, p1, e2)) return true;
+        // p3, p4, p2 are collinear and p2 lies on p3->p4
+        if (o4 == 0 && onSegment(e1, p2, e2)) return true;
+
+        // Otherwise, they don't intersect
+        return false;
     }
     public LngLat[] calculatePathWHILE(LngLat start, LngLat end, NamedRegion[] noFlyZones, NamedRegion stayInZone, int maxSteps){
         ArrayList<NamedRegion> newZones = new ArrayList<>();
@@ -339,13 +405,13 @@ public class PathCalculator {
         while(!frontier.isEmpty()){
             pP p = frontier.poll();
             closedSet.add(p);
-            if(frontier.size() >= maxSteps){
+            if(frontier.size() >= maxSteps * 2){
                 throw new Exception("Max steps reached");
             }
             if(lngLatHandler.isCloseTo(p.getPoint(), end)){
                 return reconstructPathJPS(p, startpP, maxSteps);
             }
-            jumpReturn jp = jump(p, end, newZones.toArray(new NamedRegion[0]));
+            jumpReturn jp = jump(p, end, newZones.toArray(new NamedRegion[0]), stayInZone);
             if(jp == null ||(jp.getPoint() == null && jp.getRegion() == null)){
                 throw new Exception("Path not found");
             }
@@ -356,18 +422,31 @@ public class PathCalculator {
                 return reconstructPathJPS(jp.getPoint(), startpP, maxSteps);
             }
             p = jp.getPoint();
-            for(double i = 0; i < 360; i += 22.5){
+            NamedRegion blocked = jp.getRegion();
+            double angle = getAngle(p.getPoint(), end);
+            boolean in = lngLatHandler.isInRegion(p.getPoint(), stayInZone);
+            for(double i = angle - 100; i <= angle + 100; i += 22.5){
+            //for(double i = 0; i < 360; i += 22.5){
                 pP nextP = new pP(lngLatHandler.nextPosition(p.getPoint(), i));
                 if(!lngLatHandler.isLngLat(nextP.getPoint())){
                     throw new Exception("Next point is not a lng lat");
                 }
-                if(lngLatHandler.isInRegion(nextP.getPoint(), jp.getRegion())) continue;
-                System.out.println("visiting:" + nextP.getPoint().toString());
+                if(lngLatHandler.isInRegion(nextP.getPoint(), blocked)) continue;
+                if(in && !lngLatHandler.isInRegion(nextP.getPoint(), stayInZone)) continue;
+                boolean intercept = false;
+                for(int j = 0; j < blocked.vertices().length - 1; j++){
+                    if(this.intercept(p.getPoint(), nextP.getPoint(), blocked.vertices()[j], blocked.vertices()[j+1])) {
+                        intercept = true;
+                        break;
+                    }
+                }
+                if(intercept) continue;
+                //System.out.println("visiting:" + nextP.getPoint().toString());
                 if(closedSet.contains(nextP)) continue;
                 double tentativeG = p.getG() + SystemConstants.DRONE_MOVE_DISTANCE;
                 if(tentativeG < nextP.getG() || !frontier.contains(nextP)){
                     nextP.setG(tentativeG);
-                    nextP.setH(lngLatHandler.distanceTo(nextP.getPoint(), end));
+                    nextP.setH(lngLatHandler.distanceTo(nextP.getPoint(), end) * 1.5);
                     nextP.setF(nextP.getG() + nextP.getH());
                     nextP.setParent(p);
                     if(!frontier.contains(nextP)){

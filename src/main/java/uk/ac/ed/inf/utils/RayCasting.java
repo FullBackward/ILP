@@ -6,11 +6,43 @@ import java.math.MathContext;
 //reference: https://rosettacode.org/wiki/Ray-casting_algorithm#Java
 //modified to BigDecimal
 public class RayCasting {
-    static boolean intersects(BigDecimal[] A, BigDecimal[] B, BigDecimal[] P) {
+    public static boolean intersects(double[] A, double[] B, double[] P){
+        if(A[1] > B[1]){
+            return intersects(B, A, P);
+        }
+        if(P[1] == A[1]){
+            P[1] = P[1] + 0.000001;
+        }
+        if(P[1] == B[1]){
+            P[1] = P[1] - 0.000001;
+        }
+        // if Py > By or Py < Ay or Px > max(Ax, Bx), return false 1
+        if (P[1] > B[1] || P[1] < A[1]
+                || P[0] > Math.max(A[0], B[0])) {
+            //System.out.println("1");
+            return false;
+        }
+        if (P[0] < Math.min(A[0], B[0])) {
+            //System.out.println("2");
+            return true;
+        }
+
+        // compare area 3
+        try{
+            double red = (P[1]- A[1]) / (double)(P[0]- A[0]);
+            double blue = (B[1] - A[1]) / (double)(B[0]- A[0]);
+            //System.out.println("3: " + red + "," + blue);
+            return red >= blue;
+        }catch(ArithmeticException exp){
+            System.out.println("[ERROR] SOURCE = RayCasting; " + exp);
+            return false;
+        }
+    }
+    public static boolean intersectsBD(BigDecimal[] A, BigDecimal[] B, BigDecimal[] P) {
         //System.out.println(A[0].toString() + "," + A[1].toString() + ";" + B[0].toString() + "," + B[1].toString());
         // make Ay < By
         if (A[1].compareTo(B[1]) > 0)
-            return intersects(B, A, P);
+            return intersectsBD(B, A, P);
 
         // if Py == Ay, Py + Err, make P inside
         if (P[1].compareTo(A[1]) == 0) {
