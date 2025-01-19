@@ -7,7 +7,6 @@ import uk.ac.ed.inf.data.Pizza;
 import uk.ac.ed.inf.data.Restaurant;
 import uk.ac.ed.inf.constant.SystemConstants;
 
-import java.time.DayOfWeek;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
@@ -49,7 +48,8 @@ public class OrderHandler implements uk.ac.ed.inf.interfaces.OrderValidation {
             orderToValidate.setOrderValidationCode(OrderValidationCode.MAX_PIZZA_COUNT_EXCEEDED);
             return orderToValidate;
         }
-        if (!luhnTest(orderToValidate.getCreditCardInformation().getCreditCardNumber())) {
+        String cn = orderToValidate.getCreditCardInformation().getCreditCardNumber();
+        if (!luhnTest(cn) || !(cn.length() == 16)) {
             orderToValidate.setOrderStatus(OrderStatus.INVALID);
             orderToValidate.setOrderValidationCode(OrderValidationCode.CARD_NUMBER_INVALID);
             return orderToValidate;
@@ -118,6 +118,7 @@ public class OrderHandler implements uk.ac.ed.inf.interfaces.OrderValidation {
         if(total != orderToValidate.getPriceTotalInPence()){
             orderToValidate.setOrderStatus(OrderStatus.INVALID);
             orderToValidate.setOrderValidationCode(OrderValidationCode.TOTAL_INCORRECT);
+            return orderToValidate;
         }
         orderToValidate.setOrderStatus(OrderStatus.VALID);
         orderToValidate.setOrderValidationCode(OrderValidationCode.NO_ERROR);

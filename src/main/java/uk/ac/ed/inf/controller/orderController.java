@@ -2,6 +2,7 @@ package uk.ac.ed.inf.controller;
 
 import com.google.gson.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -71,15 +72,15 @@ public class orderController {
         );
         return new Order(o.get("orderNo").getAsString(),
                 LocalDate.parse(o.get("orderDate").getAsString(), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                OrderStatus.UNDEFINED,
-                OrderValidationCode.UNDEFINED,
+                OrderStatus.valueOf(o.get("orderStatus").getAsString()),
+                OrderValidationCode.valueOf(o.get("orderValidationCode").getAsString()),
                 o.get("priceTotalInPence").getAsInt(),
                 pizzas,
                 creditCardInformation
         );
     }
 
-    private Restaurant[] stringParseRestaurants(String body) throws JsonParseException, NullPointerException, IOException, InterruptedException {
+    public Restaurant[] stringParseRestaurants(String body) throws JsonParseException, NullPointerException, IOException, InterruptedException {
         JsonArray r = JsonParser.parseString(body).getAsJsonArray();
         Restaurant[] restaurants = new Restaurant[r.size()];
         for (int i = 0; i < r.size(); i++) {
@@ -212,6 +213,9 @@ public class orderController {
             Restaurant[] restaurants = uriParseRestaurants(this.restaurantsURI);
             Order order = stringParseOrder(body);
             order = this.orderHandler.validateOrder(order, restaurants);
+            //if(order.getOrderStatus() != OrderStatus.VALID){
+            //    throw new Exception("Invalid order");
+            //}
             return new OrderValidationResult(order.getOrderValidationCode(), order.getOrderStatus());
         } catch (JsonParseException ex) {
             System.err.println("[Error] SOURCE = ORDER CONTROLLER|JSON Parser exception: " + ex);
@@ -276,5 +280,10 @@ public class orderController {
                     HttpStatus.BAD_REQUEST, "Error: ", ex);
         }
     }
+    @GetMapping("/status")
+    public String liveStatus(){
+        return "Order: live";
+    }
+
 }
 

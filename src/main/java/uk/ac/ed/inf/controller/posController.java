@@ -86,7 +86,10 @@ public class posController {
                     throw new ResponseStatusException(
                             HttpStatus.BAD_REQUEST, "Illegal angle");
                 }
-                angle = angle % 360;
+                if(angle > 360 || angle < 0){
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "Illegal angle");
+                }
                 if(!llHandler.isLngLat(start)){
                     System.err.println("[Error] SOURCE = POS CONTROLLER|Invalid position lng lat value");
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
@@ -144,6 +147,9 @@ public class posController {
                         HttpStatus.BAD_REQUEST, "Error: ", ex);
             }
         }
-
+        @GetMapping("/live")
+        public String liveStatus(){
+            return "live";
+        }
     }
 

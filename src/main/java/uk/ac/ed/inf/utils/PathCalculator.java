@@ -92,20 +92,44 @@ public class PathCalculator {
         jumpReturn jumpReturn = new jumpReturn();
         boolean in = false;
         while(true){
+            //System.out.println("jumping");
+            //System.out.println(currentPoint.getPoint());
+            //System.out.println(end);
+            //System.out.println(noFlyZones.length);
             LngLat currentLL = currentPoint.getPoint();
             if(lngLatHandler.isInRegion(currentLL, stayInZone)) in = true;
-            pP[] neighbours = new pP[3];
-            int n = 0;
-            double angle = getAngle(currentPoint.getPoint(), end);
-            for(double i = angle - 22.5; i <= angle + 22.5; i += 22.5){
+            PriorityQueue<pP> neighbours = new PriorityQueue<>();
+            double angle = getAngle(currentLL, end);
+            //System.out.println(angle);
+            for(double i = angle + 45; i >= angle - 45; i -= 22.5){
+                double a = i;
+                if(a > 360){
+                    a -= 360;
+                }
+                if(a < 0){
+                    a += 360;
+                }
+                //System.out.println(a);
                 LngLat npos = this.lngLatHandler.nextPosition(currentLL, i);
-                neighbours[n] = new pP(npos);
-                neighbours[n].setParent(currentPoint);
-                neighbours[n].setF(lngLatHandler.distanceTo(npos, end));
-                n++;
+                pP newP = new pP(npos);
+                newP.setParent(currentPoint);
+                newP.setF(lngLatHandler.distanceTo(npos, end));
+                neighbours.add(newP);
             }
-            Arrays.sort(neighbours);
-            pP nextPos = neighbours[0];
+            pP nextPos = neighbours.poll();
+            if(nextPos == null){
+                return null;
+            }
+            //System.out.println(nextPos.getPoint());
+            if(lngLatHandler.isCloseTo(nextPos.getPoint(), end)){
+                jumpReturn.setPoint(nextPos);
+                return jumpReturn;
+            }
+            if((in && !lngLatHandler.isInRegion(nextPos.getPoint(), stayInZone))){
+                jumpReturn.setRegion(stayInZone);
+                jumpReturn.setPoint(currentPoint);
+                return jumpReturn;
+            }
             for(NamedRegion region: noFlyZones){
                 double[] ds = new double[region.vertices().length];
                 for(int i = 0; i < ds.length; i++){
@@ -117,16 +141,9 @@ public class PathCalculator {
                     jumpReturn.setPoint(currentPoint);
                     return jumpReturn;
                 }
-                if((in && !lngLatHandler.isInRegion(nextPos.getPoint(), stayInZone))){
-                    return null;
-                }
             }
             if(!lngLatHandler.isLngLat(nextPos.getPoint())){
                 return null;
-            }
-            if(lngLatHandler.isCloseTo(nextPos.getPoint(), end)){
-                jumpReturn.setPoint(nextPos);
-                return jumpReturn;
             }
             currentPoint = nextPos;
         }
@@ -141,14 +158,11 @@ public class PathCalculator {
         System.out.println(Arrays.deepToString(printPath));
     }
     private double getAngle(LngLat p1, LngLat p2) {
-        double angle = Math.toDegrees(Math.atan2(p1.lat() - p2.lat(), p1.lng()) - p2.lng());
-        if (angle < 0){
-            angle += 360;
-        }
-        angle = ((angle % 360) + 360) % 360;
+        double angle = Math.toDegrees(Math.atan2(p2.lat() - p1.lat(), p2.lng() - p1.lng()));
+        angle = (angle + 360) % 360;
 
         // 2) Each of the 16 directions covers 360 / 16 = 22.5 degrees
-        double increment = 360.0 / 16.0; // 22.5
+        double increment = 22.5; // 22.5
 
         // 3) Divide, round to nearest integer, then multiply back
         double steps = Math.round(angle / increment);
@@ -177,12 +191,13 @@ public class PathCalculator {
         ArrayList<LngLat> pathAL = new ArrayList<>();
         pP p = end;
         while(p != start){
-            pathAL.add(p.point);
+            pathAL.add(p.getPoint());
             if(p.getParent() == null){
                 break;
             }
             p = p.getParent();
         }
+        pathAL.add(start.getPoint());
         Collections.reverse(pathAL);
         if(pathAL.size() > maxSteps) throw new Exception("Max steps meets");
         this.prettyPrintPath(pathAL);
@@ -403,10 +418,14 @@ public class PathCalculator {
         startpP.setF(startpP.getG() + startpP.getH());
         frontier.add(startpP);
         while(!frontier.isEmpty()){
+            //System.out.println("Astar");
             pP p = frontier.poll();
             closedSet.add(p);
             if(frontier.size() >= maxSteps * 2){
                 throw new Exception("Max steps reached");
+            }
+            if(p.getPoint() == null){
+                throw new Exception("Point is null");
             }
             if(lngLatHandler.isCloseTo(p.getPoint(), end)){
                 return reconstructPathJPS(p, startpP, maxSteps);
@@ -418,29 +437,34 @@ public class PathCalculator {
             if(jp.getPoint() == null){
                 throw new Exception("Path not found");
             }
-            if(jp.getRegion() == null){
-                return reconstructPathJPS(jp.getPoint(), startpP, maxSteps);
-            }
             p = jp.getPoint();
-            NamedRegion blocked = jp.getRegion();
+            if(lngLatHandler.isCloseTo(p.getPoint(), end)){
+                return reconstructPathJPS(p, startpP, maxSteps);
+            }
+            NamedRegion blocked = null;
+            if(jp.getRegion() != stayInZone){
+                blocked = jp.getRegion();
+            }
             double angle = getAngle(p.getPoint(), end);
             boolean in = lngLatHandler.isInRegion(p.getPoint(), stayInZone);
-            for(double i = angle - 100; i <= angle + 100; i += 22.5){
+            for(double i = angle - 112.5; i <= angle + 112.5; i += 22.5){
             //for(double i = 0; i < 360; i += 22.5){
                 pP nextP = new pP(lngLatHandler.nextPosition(p.getPoint(), i));
                 if(!lngLatHandler.isLngLat(nextP.getPoint())){
                     throw new Exception("Next point is not a lng lat");
                 }
-                if(lngLatHandler.isInRegion(nextP.getPoint(), blocked)) continue;
+                if(blocked != null && lngLatHandler.isInRegion(nextP.getPoint(), blocked)) continue;
                 if(in && !lngLatHandler.isInRegion(nextP.getPoint(), stayInZone)) continue;
-                boolean intercept = false;
-                for(int j = 0; j < blocked.vertices().length - 1; j++){
-                    if(this.intercept(p.getPoint(), nextP.getPoint(), blocked.vertices()[j], blocked.vertices()[j+1])) {
-                        intercept = true;
-                        break;
+                if(blocked != null){
+                    boolean intercept = false;
+                    for(int j = 0; j < blocked.vertices().length - 1; j++){
+                        if(this.intercept(p.getPoint(), nextP.getPoint(), blocked.vertices()[j], blocked.vertices()[j+1])) {
+                            intercept = true;
+                            break;
+                        }
                     }
+                    if(intercept) continue;
                 }
-                if(intercept) continue;
                 //System.out.println("visiting:" + nextP.getPoint().toString());
                 if(closedSet.contains(nextP)) continue;
                 double tentativeG = p.getG() + SystemConstants.DRONE_MOVE_DISTANCE;
