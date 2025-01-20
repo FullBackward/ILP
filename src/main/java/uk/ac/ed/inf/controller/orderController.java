@@ -31,9 +31,11 @@ import java.util.stream.Stream;
 public class orderController {
     private final OrderHandler orderHandler = new OrderHandler();
     private final PathCalculator pathCalculator = new PathCalculator();
+    //Static uri management better for manual update in future.
     private final String restaurantsURI = "https://ilp-rest-2024.azurewebsites.net/restaurants";
     private final String centralAreaURI = "https://ilp-rest-2024.azurewebsites.net/centralArea";
     private final String noFlyZoneURI = "https://ilp-rest-2024.azurewebsites.net/noFlyZones";
+    //Pre-defined http client and request, avoid repeated creating same request
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final HttpRequest restrauntRequest = HttpRequest.newBuilder()
             .uri(URI.create(restaurantsURI))
@@ -55,7 +57,7 @@ public class orderController {
     }
 
      */
-
+    //Helper function for testing
     public Order stringParseOrder(String body) throws JsonParseException, NullPointerException {
         JsonObject o = JsonParser.parseString(body).getAsJsonObject();
         JsonArray arr = o.get("pizzasInOrder").getAsJsonArray();
@@ -79,7 +81,7 @@ public class orderController {
                 creditCardInformation
         );
     }
-
+    //Helper function for testing
     public Restaurant[] stringParseRestaurants(String body) throws JsonParseException, NullPointerException, IOException, InterruptedException {
         JsonArray r = JsonParser.parseString(body).getAsJsonArray();
         Restaurant[] restaurants = new Restaurant[r.size()];
@@ -104,6 +106,7 @@ public class orderController {
         }
         return restaurants;
     }
+    //Endpoint restaurants data request function
     private Restaurant[] uriParseRestaurants(String uri) throws JsonParseException, NullPointerException, IOException, InterruptedException {
         HttpResponse<String> response = this.httpClient.send(restrauntRequest, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != HttpStatus.OK.value()) {
@@ -150,7 +153,7 @@ public class orderController {
 
          */
     }
-
+    //Parse Named Region from Json string
     private NamedRegion stringParseNamedRegion(String body) throws JsonParseException, NullPointerException {
         JsonObject o = JsonParser.parseString(body).getAsJsonObject();
         JsonArray v = o.get("vertices").getAsJsonArray();
@@ -163,7 +166,7 @@ public class orderController {
                         )
                         .toArray(LngLat[]::new));
     }
-
+    //URI request no fly zones
     private NamedRegion[] uriParseNoFlyZones(String uri) throws JsonParseException, NullPointerException, IOException, InterruptedException {
         HttpResponse<String> response = this.httpClient.send(noFlyZoneRequest, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != HttpStatus.OK.value()) {
@@ -175,7 +178,7 @@ public class orderController {
                 .mapToObj(n -> stringParseNamedRegion(ns.get(n).toString()))
                 .toArray(NamedRegion[]::new);
     }
-
+    //Order status checking and path calculation function called here
     private LngLat[] calPathPlain(String body) throws Exception{
         Order order = stringParseOrder(body);
         Restaurant[] restaurants = this.uriParseRestaurants(this.restaurantsURI);
@@ -207,6 +210,7 @@ public class orderController {
                 centralArea,
                 SystemConstants.DRONE_MAX_MOVES);
     }
+    //API: order Validate
     @PostMapping("/orderValidate")
     public OrderValidationResult validateOrder(@RequestBody String body) {
         try {
@@ -240,9 +244,11 @@ public class orderController {
         }
     }
 
+    //API: calcDeliveryPath
     @PostMapping("/calcDeliveryPath")
     public LngLat[] calcDeliveryPath(@RequestBody String body) {
         try {
+            //Since this part is highly duplicated with calcDeliveryPathAsGeoJson, I extract them to a function
             return this.calPathPlain(body);
         } catch (Exception ex) {
             System.err.println("[Error] SOURCE = ORDER CONTROLLER|Other error: element not found: " + ex);
@@ -252,6 +258,7 @@ public class orderController {
         }
     }
 
+    //API: calcDeliveryPathAsGeoJson
     @PostMapping("/calcDeliveryPathAsGeoJson")
     public String calcDeliveryPathAsGeoJson(@RequestBody String body) {
         try {
@@ -280,6 +287,8 @@ public class orderController {
                     HttpStatus.BAD_REQUEST, "Error: ", ex);
         }
     }
+
+    //API: Live status
     @GetMapping("/status")
     public String liveStatus(){
         return "Order: live";

@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class OrderHandler implements uk.ac.ed.inf.interfaces.OrderValidation {
-    private final int maximumPizzas = 4;
 
     public OrderHandler() {
     }
@@ -43,7 +42,7 @@ public class OrderHandler implements uk.ac.ed.inf.interfaces.OrderValidation {
             orderToValidate.setOrderValidationCode(OrderValidationCode.EMPTY_ORDER);
             return orderToValidate;
         }
-        if (orderToValidate.getPizzasInOrder().length > this.maximumPizzas) {
+        if (orderToValidate.getPizzasInOrder().length > SystemConstants.MAX_PIZZAS_PER_ORDER) {
             orderToValidate.setOrderStatus(OrderStatus.INVALID);
             orderToValidate.setOrderValidationCode(OrderValidationCode.MAX_PIZZA_COUNT_EXCEEDED);
             return orderToValidate;
